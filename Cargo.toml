@@ -12,7 +12,8 @@ keywords = ["math", "e-voting", "crypto"]
 
 
 [dependencies]
-rust_ev_verifier_lib = { path = "../rust_ev_verifier_lib" }
+rust_ev_verifier_lib = "0.1.0"
+#rust_ev_verifier_lib = { path = "../rust_ev_verifier_lib" }
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 dotenvy = "0.15"

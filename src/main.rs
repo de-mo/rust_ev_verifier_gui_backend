@@ -4,7 +4,7 @@ mod middlewares;
 pub mod request;
 pub mod response;
 mod router;
-mod subscriber;
+mod tracing_subscriber;
 
 #[cfg(test)]
 mod test_request;
@@ -21,9 +21,9 @@ use lazy_static::lazy_static;
 use middlewares::check_status_middelware;
 use router::routes;
 use rust_ev_verifier_lib::Config as VerifierConfig;
-use subscriber::init_subscriber;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
+use tracing_subscriber::init_subscriber;
 
 lazy_static! {
     static ref CONFIG: VerifierConfig = VerifierConfig::new(".");

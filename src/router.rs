@@ -43,6 +43,10 @@ pub const ALLOWED_ROUTE_PATHES: &[(AppStatus, &[RoutePath])] = &[
         &[RoutePath::Status, RoutePath::ManualChecks, RoutePath::Root],
     ),
     (
+        AppStatus::ExtractError,
+        &[RoutePath::Status, RoutePath::ManualChecks, RoutePath::Root],
+    ),
+    (
         AppStatus::Extracted,
         &[
             RoutePath::Run,
@@ -54,6 +58,10 @@ pub const ALLOWED_ROUTE_PATHES: &[(AppStatus, &[RoutePath])] = &[
     ),
     (
         AppStatus::Running,
+        &[RoutePath::Status, RoutePath::ManualChecks, RoutePath::Root],
+    ),
+    (
+        AppStatus::RunError,
         &[RoutePath::Status, RoutePath::ManualChecks, RoutePath::Root],
     ),
     (

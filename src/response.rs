@@ -26,6 +26,7 @@ pub struct StatusResponse {
     pub location: Option<PathBuf>,
     pub verification_information: HashMap<String, VerificationInformation>,
     pub verification_status: HashMap<String, VerificationStatus>,
+    pub error: Option<String>,
 }
 
 impl From<&AppData> for StatusResponse {
@@ -42,6 +43,7 @@ impl From<&AppData> for StatusResponse {
                 .map(|r| r.location().to_path_buf()),
             verification_information: value.verification_information.clone(),
             verification_status: value.verification_status.clone(),
+            error: value.error.clone(),
         }
     }
 }

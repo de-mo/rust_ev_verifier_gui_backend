@@ -16,8 +16,10 @@ pub enum AppStatus {
     ContextDataSetLoaded,
     PeriodDataSetLoaded,
     Extracting,
+    ExtractError,
     Extracted,
     Running,
+    RunError,
     Finished,
 }
 
@@ -70,6 +72,7 @@ pub struct AppData {
     pub extracted_dataset_result: Option<ExtractDataSetResults>,
     pub verification_information: HashMap<String, VerificationInformation>,
     pub verification_status: HashMap<String, VerificationStatus>,
+    pub error: Option<String>,
 }
 
 pub type AppDataLockArc = Arc<RwLock<AppData>>;
@@ -84,6 +87,7 @@ impl Default for AppData {
             extracted_dataset_result: None,
             verification_information: HashMap::new(),
             verification_status: HashMap::new(),
+            error: None,
         }
     }
 }

@@ -1,19 +1,18 @@
 use std::path::PathBuf;
 
-use super::{get_status_response, update_status};
+use super::{get_status_response, update_status, update_with_error};
 use crate::{
     app_data::{AppData, AppDataLockArc, AppStatus, VerificationStatusEnum},
     response::StatusResponse,
     AppError,
 };
-use anyhow::Context;
 use axum::{extract::State, Json};
 use rust_ev_verifier_lib::{
     application_runner::{RunParallel, Runner},
     verification::{VerificationMetaDataList, VerificationPeriod},
     Config,
 };
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{debug, info, instrument, trace};
 
 #[instrument(skip(state, config, metada_list))]
 async fn run_fn(
@@ -22,10 +21,10 @@ async fn run_fn(
     extracted_location: PathBuf,
     metada_list: &VerificationMetaDataList,
     config: &'static Config,
-) -> Result<(), anyhow::Error> {
+) {
     let state_before = state.clone();
     let state_after = state.clone();
-    let mut runner = Runner::new(
+    let mut runner = match Runner::new(
         extracted_location.as_path(),
         &period,
         &metada_list,
@@ -48,21 +47,27 @@ async fn run_fn(
             }
             trace!("end of after for {}", id);
         },
-    )
-    .context("Error creating the runner")
-    .or_else(|e| {
-        error!("{:?}", e);
-        Err(e)
-    })?;
+    ) {
+        Ok(res) => res,
+        Err(e) => {
+            let mut state_mut: tokio::sync::RwLockWriteGuard<'_, AppData> = state.write().await;
+            update_with_error(
+                &mut state_mut,
+                AppStatus::RunError,
+                format!("Error creating the runner: {:?}", e).as_str(),
+            );
+            return;
+        }
+    };
     debug!("Runner created");
-    runner
-        .run_all(&metada_list)
-        .context("error running the tests")
-        .or_else(|e| {
-            error!("{:?}", e);
-            Err(e)
-        })?;
-    Ok(())
+    if let Err(e) = runner.run_all(&metada_list) {
+        let mut state_mut: tokio::sync::RwLockWriteGuard<'_, AppData> = state.write().await;
+        update_with_error(
+            &mut state_mut,
+            AppStatus::RunError,
+            format!("error running the tests: {:?}", e).as_str(),
+        );
+    }
 }
 
 pub async fn run_handler(

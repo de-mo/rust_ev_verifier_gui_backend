@@ -1,10 +1,10 @@
-use super::{get_status_response, update_status};
+use super::{get_status_response, update_status, update_with_error};
 use crate::{
     app_data::{AppData, AppDataLockArc, AppStatus, InputFileLocation},
     response::StatusResponse,
     AppError,
 };
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use axum::{extract::State, Json};
 use rust_ev_verifier_lib::{
     application_runner::ExtractDataSetResults, verification::VerificationPeriod, Config,
@@ -18,21 +18,27 @@ async fn extract_fn(
     file_location: InputFileLocation,
     password: String,
     config: &'static Config,
-) -> Result<(), anyhow::Error> {
+) {
     info!("Extraction started");
-    let extracted = ExtractDataSetResults::extract_datasets(
+    let extracted = match ExtractDataSetResults::extract_datasets(
         period,
         file_location.context_zip_file.unwrap().as_path(),
         file_location.setup_zip_file.as_deref(),
         file_location.tally_zip_file.as_deref(),
         &password,
         config,
-    )
-    .context("Problem with extraction")
-    .or_else(|e| {
-        error!("{:?}", e);
-        Err(e)
-    })?;
+    ) {
+        Ok(res) => res,
+        Err(e) => {
+            let mut state_mut: tokio::sync::RwLockWriteGuard<'_, AppData> = state.write().await;
+            update_with_error(
+                &mut state_mut,
+                AppStatus::ExtractError,
+                format!("Problem extracting the datasets: {:?}", e).as_str(),
+            );
+            return;
+        }
+    };
     info!(
         "Extraction successful in {}",
         extracted.location().to_str().unwrap()
@@ -40,7 +46,6 @@ async fn extract_fn(
     let mut state_mut: tokio::sync::RwLockWriteGuard<'_, AppData> = state.write().await;
     state_mut.extracted_dataset_result = Some(extracted);
     update_status(&mut state_mut, AppStatus::Extracted);
-    Ok(())
 }
 
 pub async fn extract_handler(
